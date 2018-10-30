@@ -10,11 +10,18 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
 
-    let itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+    var itemArray = ["Find Mike", "Buy Eggos", "Destroy Demogorgon"]
+    
+    let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        
+        if let items = defaults.array(forKey: "ToDoListArray") as? [String] {
+            itemArray = items //uses the local user default items (in a plist file on the device) to add strings to the array
+        }
+        
     }
 
     //MARK - Tableview Datasource Methods
@@ -70,6 +77,8 @@ class TodoListViewController: UITableViewController {
             
             self.itemArray.append(textField.text!) //adds what the user types into the alert popup into the array
             
+            self.defaults.set(self.itemArray, forKey: "TodoListArray") //saves user created array items to the user defaults
+                
             self.tableView.reloadData() //reloads the data in the table view controller to show the new value of what the user types in 
             
         }
@@ -89,6 +98,6 @@ class TodoListViewController: UITableViewController {
         
     }
     
-}
+
 
 
