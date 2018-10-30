@@ -53,8 +53,42 @@ class TodoListViewController: UITableViewController {
         
         tableView.deselectRow(at: indexPath, animated: true) //when you select the row it flashes grey for a second then goes back to white
         
+    }
+    
+    //MARK - Add New Items
+    
+    
+    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) { //linked from the + button in the top right corner of Todoey table view controller
+    
+            var textField = UITextField()
+        
+            let alert = UIAlertController(title: "Add new Todoey Item", message: "", preferredStyle: .alert) //creates the alert popup to add text into the box for input into the list
+        
+        
+            let action = UIAlertAction(title: "Add Item", style: .default) { (action) in //The button you press when your done writing your item and want to add it to the list
+         
+            
+            self.itemArray.append(textField.text!) //adds what the user types into the alert popup into the array
+            
+            self.tableView.reloadData() //reloads the data in the table view controller to show the new value of what the user types in 
+            
+        }
+            
+            //create text box for user to input information
+            alert.addTextField(configurationHandler: { (alertTextField) in
+                alertTextField.placeholder = "Create New Item" //placeholder item that appears in grey before the user writes in it
+                textField = alertTextField
+            })
+            
+            alert.addAction(action)
+            
+            present(alert, animated: true, completion: nil) //shows alert
+            
+            
+        }
         
     }
     
 }
+
 
