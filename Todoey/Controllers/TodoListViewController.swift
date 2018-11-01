@@ -12,28 +12,20 @@ class TodoListViewController: UITableViewController {
 
     var itemArray = [Item]()
     
-    let defaults = UserDefaults.standard
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist") //creates the database (a plist)
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        let newItem = Item()
-        newItem.title = "Find Mike"
-        itemArray.append(newItem)
         
-        let newItem2 = Item()
-        newItem2.title = "Buy Eggos"
-        itemArray.append(newItem2)
+        print(dataFilePath)
         
-        let newItem3 = Item()
-        newItem3.title = "Destroy Demogorgon"
-        itemArray.append(newItem3)
+        loadItems()
         
-        
-        if let items = defaults.array(forKey: "ToDoListArray") as? [Item] {
-            itemArray = items //uses the local user default items (in a plist file on the device) to add strings to the array
-        }
+//        if let items = defaults.array(forKey: "ToDoListArray") as? [Item] {
+//            itemArray = items //uses the local user default items (in a plist file on the device) to add strings to the array
+//        }
         
     }
 
@@ -72,7 +64,8 @@ class TodoListViewController: UITableViewController {
         
         //Allows you to check and uncheck the checkmark if you want
         
-        tableView.reloadData()
+        saveItems()
+        
         
         tableView.deselectRow(at: indexPath, animated: true) //when you select the row it flashes grey for a second then goes back to white
         
@@ -95,9 +88,7 @@ class TodoListViewController: UITableViewController {
                 
             self.itemArray.append(newItem) //adds what the user types into the alert popup into the array
             
-            self.defaults.set(self.itemArray, forKey: "TodoListArray") //saves user created array items to the user defaults
-                
-            self.tableView.reloadData() //reloads the data in the table view controller to show the new value of what the user types in 
+            self.saveItems()
             
         }
             
@@ -113,9 +104,38 @@ class TodoListViewController: UITableViewController {
             
             
         }
+  //Uses NSCoder to encode and decode data into a plist file for local persistance
+    
+    func saveItems() {
         
+        let encoder = PropertyListEncoder() //saves user created array items to the user defaults
+        do {
+            let data = try encoder.encode(itemArray)
+            try data.write(to: dataFilePath!)
+        }
+        catch {
+            print("Error encoding item array, \(error)")
+        }
+        self.tableView.reloadData() //reloads the data in the table view controller to show the new value of what the user types in
     }
     
+    func loadItems() {
+        if let data = try? Data(contentsOf: dataFilePath!) {
+            let decoder = PropertyListDecoder()
+            do {
+                itemArray = try decoder.decode( [Item].self, from: data)
+            }
+            catch {
+                print("Error decoding item array, \(error)")
+            }
+            
+        }
+    }
+    
+}
+    
+    //MARK - Model Manipulation Methods
+
 
 
 
