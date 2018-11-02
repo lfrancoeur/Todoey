@@ -7,21 +7,28 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
 
     var itemArray = [Item]()
     
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist") //creates the database (a plist)
+    var selectedCategory : Category? {
+        didSet{
+            loadItems()
+        }
+    }
+    
+   let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
+        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
+       
         
-        print(dataFilePath)
-        
-        loadItems()
+      
         
 //        if let items = defaults.array(forKey: "ToDoListArray") as? [Item] {
 //            itemArray = items //uses the local user default items (in a plist file on the device) to add strings to the array
@@ -59,8 +66,10 @@ class TodoListViewController: UITableViewController {
         
        // print(itemArray[indexPath.row]) //prints out the cell name
         
-        itemArray[indexPath.row].done = !itemArray[indexPath.row].done
+       itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         
+//        context.delete(itemArray[indexPath.row])
+//        itemArray.remove(at: indexPath.row)
         
         //Allows you to check and uncheck the checkmark if you want
         
@@ -82,9 +91,16 @@ class TodoListViewController: UITableViewController {
         
         
             let action = UIAlertAction(title: "Add Item", style: .default) { (action) in //The button you press when your done writing your item and want to add it to the list
-         
-            let newItem = Item()
+            
+            
+                
+            let newItem = Item(context: self.context)
+            
             newItem.title = textField.text!
+                
+            newItem.done = false
+            
+            newItem.parentCatrgory = self.selectedCategory
                 
             self.itemArray.append(newItem) //adds what the user types into the alert popup into the array
             
@@ -104,38 +120,79 @@ class TodoListViewController: UITableViewController {
             
             
         }
-  //Uses NSCoder to encode and decode data into a plist file for local persistance
+  //MARK - Model Manipulation Methods
+    
+    //Uses NSCoder to encode and decode data into a plist file for local persistance
     
     func saveItems() {
         
-        let encoder = PropertyListEncoder() //saves user created array items to the user defaults
         do {
-            let data = try encoder.encode(itemArray)
-            try data.write(to: dataFilePath!)
+            
+            try context.save()
         }
         catch {
-            print("Error encoding item array, \(error)")
+            print("Error Saving context\(error)")
         }
         self.tableView.reloadData() //reloads the data in the table view controller to show the new value of what the user types in
     }
+
     
-    func loadItems() {
-        if let data = try? Data(contentsOf: dataFilePath!) {
-            let decoder = PropertyListDecoder()
-            do {
-                itemArray = try decoder.decode( [Item].self, from: data)
-            }
-            catch {
-                print("Error decoding item array, \(error)")
+    func loadItems(with request: NSFetchRequest<Item> = Item.fetchRequest(), predicate: NSPredicate? = nil) {
+        
+        let categoryPredicate = NSPredicate(format: "parentCategory.name MATCHES %@", selectedCategory!.name!)
+        
+        if let additionalPredicate = predicate {
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate, additionalPredicate])
+        }
+        else {
+            request.predicate = categoryPredicate
+        }
+        
+        
+        do {
+            itemArray = try context.fetch(request)
+        }
+        
+        catch {
+            print("Error fetching data from context! \(error)")
+        }
+        
+    }
+    
+    
+    
+}
+
+//MARK: - Search bar methods including DB queries
+
+extension TodoListViewController: UISearchBarDelegate {
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+
+       
+        let predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!) //queries the database (case INsentivie)
+        
+        request.sortDescriptors = [NSSortDescriptor(key: "true", ascending: true)] //sorts the data (ascending) we get back from teh DB
+        
+        //fetches the results from the db from the sorts
+
+        loadItems(with: request, predicate: predicate)
+        
+       func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchBar.text?.count == 0 {
+            loadItems()
+            
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
             }
             
         }
     }
-    
 }
-    
     //MARK - Model Manipulation Methods!
 
 
 
-
+}
